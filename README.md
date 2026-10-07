@@ -1,59 +1,49 @@
-# Cisco Config Backup
+# NetWatch — Network Uptime Monitor
 
-Automated backup of Cisco IOS running configurations over SSH.
-A practical network-automation tool for technicians managing
-switches and routers.
+A simple ping-based uptime monitor for small networks and homelabs.
+Checks hosts concurrently, prints up/down status with latency,
+alerts on failures, and logs every round to CSV.
 
 ## Features
 
-- Connects to multiple Cisco IOS devices over SSH (via Netmiko)
-- Saves `show running-config` with hostname + timestamp
-- JSON device inventory (template included)
-- Clear per-device success/failure reporting
-- Credentials prompted interactively — never stored in files
+- Monitor individual hosts or sweep a whole subnet (`--subnet`)
+- Concurrent checks (fast even on a /24)
+- CSV logging for uptime history and reporting
+- Repeat mode (`--interval`) for continuous monitoring
+- Console alerts when a host goes down
+- Only the Python standard library — no dependencies
 
 ## Usage
 
 ```bash
-pip install -r requirements.txt
+# Check a few hosts once
+python3 netwatch.py 192.168.1.1 192.168.1.254 8.8.8.8
 
-# 1. Create your inventory from the template
-cp devices.example.json devices.json
-# 2. Edit devices.json with your real device IPs/names
-# 3. Run the backup
-python3 backup.py
+# Sweep a /24 subnet
+python3 netwatch.py --subnet 192.168.1.0/24
+
+# Monitor continuously every 60s and log to CSV
+python3 netwatch.py --subnet 192.168.1.0/24 --interval 60 --log uptime.csv
 ```
 
-Backups land in `backups/<hostname>/<timestamp>.cfg`.
+## Example output
 
-Options:
-
-```bash
-python3 backup.py --inventory lab.json --out ./lab_backups --username admin
+```
+$ python3 netwatch.py 192.168.1.1 8.8.8.8
+Monitoring 2 host(s)... (Ctrl+C to stop)
+[2026-10-07 11:50:00] 2/2 hosts up
+  UP    192.168.1.1 (0.8 ms)
+  UP    8.8.8.8 (24.3 ms)
 ```
 
-## Inventory format
+## CSV log format
 
-```json
-{
-  "devices": [
-    {"device_type": "cisco_ios", "host": "192.168.1.1", "name": "edge-router-01"},
-    {"device_type": "cisco_ios", "host": "192.168.1.2", "name": "core-switch-01"}
-  ]
-}
-```
-
-## Security notes
-
-- `devices.json` (real credentials/IPs) is git-ignored — only the
-  `.example.json` template is committed.
-- Passwords are read with `getpass` and never written to disk.
+`timestamp,host,status,latency_ms` — easy to open in Excel or feed into a dashboard.
 
 ## Requirements
 
 - Python 3.8+
-- netmiko (`pip install -r requirements.txt`)
-- SSH access to the target Cisco devices
+- Linux or macOS (uses the system `ping` command)
 
 ## License
 
